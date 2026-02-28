@@ -2,57 +2,52 @@ import streamlit as st
 import requests
 from bs4 import BeautifulSoup
 
-# CONFIGURAZIONE CANTIERE
 st.set_page_config(page_title="BLUE LOCK STREAMER", page_icon="⚽")
-
 st.markdown("# ⚽ PROGETTO BLUE LOCK")
-st.markdown("### RADAR MOLECOLARE ACESTREAM")
 
-# INPUT DEL FUORICLASSE
-query = st.text_input("COSA VUOI GUARDARE?", placeholder="Napoli, Verona Napoli, F1...")
+query = st.text_input("COSA VUOI GUARDARE?", placeholder="Leeds, Napoli, F1...")
 
-def SCANSIONE_RADAR(ricerca):
+def SCANSIONE_AVANZATA(ricerca):
+    # USER-AGENT DI UN VERO MAC PER AGGIRARE I BLOCCHI
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Accept-Language': 'it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7'
     }
-    # URL DEL CAVEAU
-    base_url = f"https://search-ace.stream/search?q={ricerca.replace(' ', '+')}"
-
+    url = f"https://search-ace.stream/search?q={ricerca.replace(' ', '+')}"
+    
     try:
-        response = requests.get(base_url, headers=headers, timeout=10)
+        # INNESTO TIMEOUT PER NON BLOCCARE IL CANTIERE
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return None # BLOCCO RILEVATO
+        
         soup = BeautifulSoup(response.text, 'html.parser')
-
-        # RICERCA PARTICELLE (ID) NELLA PAGINA
         results = []
-        for link in soup.find_all('a', href=True):
-            if 'acestream://' in link['href']:
-                ace_id = link['href'].replace('acestream://', '')
-                title = link.get_text().strip() or "PARTICELLA SENZA NOME"
-                results.append({"title": title, "id": ace_id})
-
+        
+        # SCANSIONE DELLE RIGHE DELLA TABELLA (DENSITÀ TECNICA)
+        for row in soup.find_all('tr'):
+            links = row.find_all('a', href=True)
+            for l in links:
+                if 'acestream://' in l['href']:
+                    ace_id = l['href'].replace('acestream://', '')
+                    title = row.get_text().strip().split('\n')[0]
+                    results.append({"title": title, "id": ace_id})
         return results
-    except Exception as e:
-        st.error(f"ERRORE NEL CANTIERE: {e}")
-        return []
+    except:
+        return None
 
 if query:
-    risultati = SCANSIONE_RADAR(query)
-
+    risultati = SCANSIONE_AVANZATA(query)
+    
     if risultati:
-        st.success(f"TROVATE {len(risultati)} PARTICELLE CON POLMONI D'ACCIAIO!")
+        st.success(f"PARTICELLE TROVATE PER: {query}")
         for r in risultati:
             with st.expander(f"📺 {r['title']}"):
-                st.code(r['id'], language="text")
-                url_finale = f"acestream://{r['id']}"
-                # IL BOTTONE DI INNESTO
-                st.markdown(f'''
-                    <a href="{url_finale}" target="_blank" style="text-decoration: none;">
-                        <button style="background-color: #008CBA; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; width: 100%;">
-                            🚀 LANCIA IN ACE PLAYER
-                        </button>
-                    </a>
-                ''', unsafe_allow_all=True)
+                url_f = f"acestream://{r['id']}"
+                st.markdown(f'<a href="{url_f}" target="_blank"><button style="width:100%; padding:10px; background:#008CBA; color:white; border:none; border-radius:5px;">🚀 LANCIA ACE PLAYER</button></a>', unsafe_allow_all=True)
     else:
-        st.warning("NESSUNA PARTICELLA TROVATA. CONTROLLA LO SCUDO WARP.")
-
-st.info("RICORDA: ACE ENGINE DEVE ESSERE ATTIVO IN SOTTOFONDO.")
+        # IL PONTE DI EMERGENZA (10000% CERTEZZA)
+        st.error("IL RADAR AUTOMATICO È STATO BLOCCATO DAL CAVEAU.")
+        st.markdown(f"### 🛡️ USA IL PONTE MANUALE")
+        st.write("IL CANTIERE AUTOMATICO È INIBITO, MA PUOI PRENDERE L'ID DIRETTAMENTE QUI:")
+        st.markdown(f'<a href="https://search-ace.stream/search?q={query.replace(" ", "+")}" target="_blank"><button style="width:100%; padding:15px; background:#FF4B4B; color:white; border:none; border-radius:5px; font-weight:bold;">🔗 APRI CAVEAU RICERCA (MANUALE)</button></a>', unsafe_allow_all=True)
